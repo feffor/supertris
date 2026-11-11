@@ -36,6 +36,7 @@ label{font-size:13px;color:var(--mu)}
 .q.w .big{display:grid}.big.X{color:var(--x)}.big.O{color:var(--o)}.big.D{color:var(--mu)}
 @keyframes pop{from{transform:scale(.3);opacity:0}}
 .g4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.g4 div{background:var(--card);border-radius:12px;padding:10px;text-align:center;font-size:13px;color:var(--mu)}.g4 b{display:block;font-size:24px;color:var(--tx)}.row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 12px;background:var(--card);border-radius:12px;font-size:14px}.row small{color:var(--mu)}.rw{color:var(--ok)}.rl{color:var(--o)}
+.tut{background:var(--card);border:2px solid var(--x);border-radius:12px;padding:10px 12px;font-size:15px;line-height:1.35}.c.hint{outline:3px solid var(--ok);animation:pl 1s infinite}@keyframes pl{50%{background:color-mix(in srgb,var(--ok) 45%,transparent)}}
 .ov{position:fixed;inset:0;background:rgba(0,0,0,.6);display:grid;place-items:center;padding:20px}
 .ov>div{background:var(--card);border-radius:18px;padding:24px;max-width:360px;width:100%;display:flex;flex-direction:column;gap:10px;text-align:center;animation:pop .3s}
 .ov h2{margin:0;font-size:26px}
@@ -52,6 +53,7 @@ p{margin:6px 0}
 <button class="btn p" id="bLoc">👥 Gioca in locale</button>
 <button class="btn p" id="bOn">🌐 Gioca online con gli amici</button>
 <button class="btn" id="bHs">📊 Statistiche e storico</button>
+<button class="btn" id="bTut">🎓 Tutorial interattivo</button>
 <button class="btn" id="bRul">📖 Regolamento</button>
 <p class="sub" id="stats"></p>
 </div>
@@ -69,6 +71,7 @@ p{margin:6px 0}
 <div id="game" class="s" hidden>
 <div class="bar"><button class="btn" id="bBack">←</button><b id="who"></b><button class="btn" id="bSnd">🔊</button></div>
 <div class="st" id="st"></div>
+<div id="tut" class="tut" hidden><div id="tm"></div><button class="btn p" id="tn" hidden style="margin-top:8px;width:100%">Fine</button></div>
 <div class="board" id="bd"></div>
 <button class="btn" id="bRe">Ricomincia</button>
 </div>
@@ -129,7 +132,7 @@ const $=id=>document.getElementById(id);
 let G={},lv=1,busy=false,snd=true,ac;
 const SY=["","X","O"];
 function beep(f,d=.08){if(!snd)return;try{ac=ac||new AudioContext();const o=ac.createOscillator(),g=ac.createGain();o.frequency.value=f;g.gain.value=.05;o.connect(g);g.connect(ac.destination);o.start();o.stop(ac.currentTime+d)}catch(e){}}
-function show(id){["home","rules","game","online","lobby","hs"].forEach(x=>$(x).hidden=x!=id);window.scrollTo(0,0)}
+function show(id){["home","rules","game","online","lobby","hs"].forEach(x=>$(x).hidden=x!=id);$("tut").hidden=!(id=="game"&&G.mode=="tut");window.scrollTo(0,0)}
 //HS-START
 const hist=()=>lsGet("hist")||[];
 function saveSt(r){const n=G.s.c.filter(x=>x).length,me=G.mode=="online"?G.sn:G.mode=="bot"?1:0;
@@ -152,8 +155,8 @@ function names(){return[($("n1").value.trim()||"Giocatore 1"),G.mode=="bot"?["Bo
 function start(mode){G={mode,s:newGame(),n:null};G.n=names();busy=false;$("ov").hidden=true;
  const bd=$("bd");if(!bd.children.length)for(let q=0;q<9;q++){const e=document.createElement("div");e.className="q";for(let i=0;i<9;i++){const b=document.createElement("button");b.className="c";b.onclick=()=>tap(q*9+i);e.appendChild(b)}const g=document.createElement("div");g.className="big";e.appendChild(g);bd.appendChild(e)}
  $("bRe").hidden=false;render();show("game");turnBot()}
-function humanTurn(){return G.mode=="online"?G.s.t==G.sn&&!G.s.r:!(G.mode=="bot"&&G.s.t==2)}
-function tap(m){if(busy||!humanTurn()||!moves(G.s).includes(m))return;if(G.mode=="online")return onMove(m);doMove(m)}
+function humanTurn(){return G.mode=="tut"?G.s.t==1&&!G.s.r:G.mode=="online"?G.s.t==G.sn&&!G.s.r:!(G.mode=="bot"&&G.s.t==2)}
+function tap(m){if(busy||!humanTurn()||!moves(G.s).includes(m))return;if(G.mode=="tut")return tutMove(m);if(G.mode=="online")return onMove(m);doMove(m)}
 function doMove(m){const s=G.s,q=(m/9)|0,n=play(s,m);G.s=n;beep(s.t==1?520:380);
  if(n.w[q]&&!s.w[q])beep(n.w[q]==3?200:760,.18);render();
  if(n.r){end();return}turnBot()}
@@ -174,12 +177,33 @@ function end(){const r=G.s.r;if(!G.rec){G.rec=true;saveSt(r)}beep(r==3?250:880,.
 document.querySelectorAll("#lv .btn").forEach(b=>b.onclick=()=>{lv=+b.dataset.l;document.querySelectorAll("#lv .btn").forEach(x=>x.classList.toggle("on",x==b))});
 $("bBot").onclick=()=>start("bot");$("bLoc").onclick=()=>start("local");$("bRul").onclick=()=>show("rules");
 document.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>show(b.dataset.go));
-$("bBack").onclick=()=>{if(G.s.r||confirm("Abbandonare la partita?"))G.mode=="online"?leave():show("home")};
+$("bBack").onclick=()=>{if(G.mode=="tut")return exitTut();if(G.s.r||confirm("Abbandonare la partita?"))G.mode=="online"?leave():show("home")};
 $("bRe").onclick=()=>{if(G.s.r||confirm("Ricominciare la partita?"))start(G.mode)};
 $("ovR").onclick=()=>G.mode=="online"?rematch():start(G.mode);$("ovM").onclick=()=>{$("ov").hidden=true;G.mode=="online"?leave(true):show("home")};
 $("bSnd").onclick=()=>{snd=!snd;$("bSnd").textContent=snd?"🔊":"🔇"};
 
 function buildBoard(){const bd=$("bd");if(bd.children.length)return;for(let q=0;q<9;q++){const e=document.createElement("div");e.className="q";for(let i=0;i<9;i++){const b=document.createElement("button");b.className="c";b.onclick=()=>tap(q*9+i);e.appendChild(b)}const g=document.createElement("div");g.className="big";e.appendChild(g);bd.appendChild(e)}}
+//TUTDATA-START
+const P3=()=>{const s=newGame();[0,1].forEach(i=>s.c[i]=1);[3,4].forEach(i=>s.c[i]=2);s.f=0;s.t=1;return s};
+const P5=()=>{const s=newGame();[0,1,2,9,10,11,21,22].forEach(i=>s.c[i]=1);[18,19].forEach(i=>s.c[i]=2);s.w[0]=1;s.w[1]=1;s.f=2;s.t=1;return s};
+const TS=[
+ {m:"Il tabellone ha 9 quadranti, ognuno è un piccolo tris. <b>La casella che scegli decide dove dovrà giocare l’avversario.</b> Prova: tocca la casella <b>al centro</b> del quadrante in alto a sinistra.",a:[4],r:44},
+ {m:"L’avversario ha giocato in basso a destra del quadrante centrale, quindi ora <b>tu devi giocare nel quadrante in basso a destra</b> (bordo verde). Scegli la casella che preferisci.",a:null},
+ {p:P3,m:"Hai due X in fila nel quadrante in alto a sinistra. Tocca la casella lampeggiante per completare il tris: <b>conquisterai il quadrante</b>.",a:[2],r:18},
+ {m:"Il quadrante in alto a sinistra è tuo e l’avversario ti ha mandato proprio lì. <b>Un quadrante concluso non si può più usare</b>: hai scelta libera, gioca in uno qualsiasi dei quadranti evidenziati.",a:null},
+ {p:P5,m:"Obiettivo finale: <b>tre quadranti allineati</b>. Ne hai già due in alto. Completa il tris nel quadrante in alto a destra!",a:[23],end:1}
+];
+//TUTDATA-END
+function hint(){document.querySelectorAll(".c.hint").forEach(b=>b.classList.remove("hint"));const a=TS[G.tut].a;if(a)a.forEach(m=>$("bd").children[(m/9)|0].children[m%9].classList.add("hint"))}
+function setStep(i){G.tut=i;const t=TS[i];if(t.p)G.s=t.p();$("tm").innerHTML=t.m;$("tn").hidden=true;render();hint()}
+function startTut(){buildBoard();busy=false;$("ov").hidden=true;G={mode:"tut",s:newGame(),n:["Tu","Allenatore"],tut:0};$("bRe").hidden=true;show("game");setStep(0)}
+function exitTut(){busy=false;G={};show("home")}
+function tutMove(m){const t=TS[G.tut];
+ if(t.a&&!t.a.includes(m)){const o=t.m;$("tm").innerHTML="👉 Tocca la casella lampeggiante.";setTimeout(()=>{if(G.mode=="tut"&&TS[G.tut]===t)$("tm").innerHTML=o},1800);return}
+ G.s=play(G.s,m);beep(520);render();
+ if(t.end){beep(880,.4);lsSet("tutDone",1);$("tm").innerHTML="🎉 <b>Hai vinto il Super Tris!</b> Ora conosci tutte le regole: buona partita.";$("tn").hidden=false;$("tn").onclick=exitTut;return}
+ busy=true;setTimeout(()=>{if(G.mode!="tut")return;const rm=t.r!=null?t.r:rnd(moves(G.s));G.s=play(G.s,rm);beep(380);busy=false;setStep(G.tut+1)},600)}
+$("bTut").onclick=startTut;
 // ===== ONLINE =====
 const SBU="https://xxxbfxsaqicntpopatuo.supabase.co",SBK="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh4eGJmeHNhcWljbnRwb3BhdHVvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQzODc2MzksImV4cCI6MjEwOTk2MzYzOX0.8R_FzfBjx0NQ79Tu3NXIDS6X-qn-eAiNFh1USA8R8mY";
 let ses=null,sb=null,ch=null,poll=null,lastV=-1,ST="r",upg=false;
