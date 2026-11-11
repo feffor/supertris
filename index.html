@@ -35,6 +35,7 @@ label{font-size:13px;color:var(--mu)}
 .big{position:absolute;inset:0;display:none;place-items:center;font:800 min(20vw,14vh)/1 system-ui;background:color-mix(in srgb,var(--card) 82%,transparent);border-radius:8px;animation:pop .4s}
 .q.w .big{display:grid}.big.X{color:var(--x)}.big.O{color:var(--o)}.big.D{color:var(--mu)}
 @keyframes pop{from{transform:scale(.3);opacity:0}}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.g4 div{background:var(--card);border-radius:12px;padding:10px;text-align:center;font-size:13px;color:var(--mu)}.g4 b{display:block;font-size:24px;color:var(--tx)}.row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 12px;background:var(--card);border-radius:12px;font-size:14px}.row small{color:var(--mu)}.rw{color:var(--ok)}.rl{color:var(--o)}
 .ov{position:fixed;inset:0;background:rgba(0,0,0,.6);display:grid;place-items:center;padding:20px}
 .ov>div{background:var(--card);border-radius:18px;padding:24px;max-width:360px;width:100%;display:flex;flex-direction:column;gap:10px;text-align:center;animation:pop .3s}
 .ov h2{margin:0;font-size:26px}
@@ -50,6 +51,7 @@ p{margin:6px 0}
 <button class="btn p" id="bBot">🤖 Gioca contro il bot</button>
 <button class="btn p" id="bLoc">👥 Gioca in locale</button>
 <button class="btn p" id="bOn">🌐 Gioca online con gli amici</button>
+<button class="btn" id="bHs">📊 Statistiche e storico</button>
 <button class="btn" id="bRul">📖 Regolamento</button>
 <p class="sub" id="stats"></p>
 </div>
@@ -70,6 +72,7 @@ p{margin:6px 0}
 <div class="board" id="bd"></div>
 <button class="btn" id="bRe">Ricomincia</button>
 </div>
+<div id="hs" class="s" hidden><h2>Statistiche</h2><div id="hsum"></div><h2>Storico</h2><div id="hl" style="display:flex;flex-direction:column;gap:6px"></div><p class="sub">I dati restano solo su questo dispositivo.</p><button class="btn" id="bClr">Cancella storico</button><button class="btn" data-go="home">← Indietro</button></div>
 <div id="online" class="s" hidden>
 <h2>Online</h2>
 <div><label>Il tuo nickname</label><input id="on" maxlength="14"></div>
@@ -126,10 +129,25 @@ const $=id=>document.getElementById(id);
 let G={},lv=1,busy=false,snd=true,ac;
 const SY=["","X","O"];
 function beep(f,d=.08){if(!snd)return;try{ac=ac||new AudioContext();const o=ac.createOscillator(),g=ac.createGain();o.frequency.value=f;g.gain.value=.05;o.connect(g);g.connect(ac.destination);o.start();o.stop(ac.currentTime+d)}catch(e){}}
-function show(id){["home","rules","game","online","lobby"].forEach(x=>$(x).hidden=x!=id);window.scrollTo(0,0)}
-function st(){try{return JSON.parse(localStorage.getItem("st"))||{g:0,w:0,l:0,d:0}}catch(e){return{g:0,w:0,l:0,d:0}}}
-function saveSt(r){if(G.mode!="bot")return;const s=st();s.g++;if(r==3)s.d++;else if(r==1)s.w++;else s.l++;try{localStorage.setItem("st",JSON.stringify(s))}catch(e){}showSt()}
-function showSt(){const s=st();$("stats").textContent=`Contro il bot — partite ${s.g} · vittorie ${s.w} · sconfitte ${s.l} · pareggi ${s.d}`}
+function show(id){["home","rules","game","online","lobby","hs"].forEach(x=>$(x).hidden=x!=id);window.scrollTo(0,0)}
+//HS-START
+const hist=()=>lsGet("hist")||[];
+function saveSt(r){const n=G.s.c.filter(x=>x).length,me=G.mode=="online"?G.sn:G.mode=="bot"?1:0;
+ const h=hist();h.unshift({d:Date.now(),m:G.mode,a:G.n[0],b:G.n[1],r,me,n});lsSet("hist",h.slice(0,200));showSt()}
+function tally(h){const m=h.filter(e=>e.me),w=m.filter(e=>e.r==e.me).length,d=m.filter(e=>e.r==3).length;let cur=0,best=0,run=0;
+ for(const e of m.slice().reverse()){if(e.r==e.me){run++;best=Math.max(best,run)}else run=0}
+ for(const e of m){if(e.r==e.me)cur++;else break}
+ return{t:m.length,w,d,l:m.length-w-d,cur,best}}
+function showSt(){const s=tally(hist());$("stats").textContent=s.t?`Le tue partite (bot e online): vittorie ${s.w} · sconfitte ${s.l} · pareggi ${s.d}`:""}
+function showHs(){const h=hist(),s=tally(h),by=m=>h.filter(e=>e.m==m).length;
+ $("hsum").innerHTML=`<div class="g4"><div><b>${s.t}</b>partite</div><div><b>${s.w}</b>vinte</div><div><b>${s.l}</b>perse</div><div><b>${s.d}</b>pari</div></div><p class="sub">Vittorie ${s.t?Math.round(s.w*100/s.t):0}% · serie attuale ${s.cur} · migliore ${s.best}<br>Bot ${by("bot")} · Online ${by("online")} · Locale ${by("local")}</p>`;
+ $("hl").innerHTML=h.length?h.slice(0,50).map(e=>{const when=new Date(e.d).toLocaleString("it-IT",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});
+  const ic={bot:"🤖",online:"🌐",local:"👥"}[e.m]||"";
+  const out=e.r==3?["Pareggio",""]:e.me?(e.r==e.me?["Vittoria","rw"]:["Sconfitta","rl"]):["Vince "+(e.r==1?e.a:e.b),""];
+  return `<div class="row"><span>${ic} ${esc(e.a)} vs ${esc(e.b)}<br><small>${when} · ${e.n} mosse</small></span><b class="${out[1]}">${esc(out[0])}</b></div>`}).join(""):'<p class="sub">Nessuna partita ancora.</p>'}
+$("bHs").onclick=()=>{showHs();show("hs")};
+$("bClr").onclick=()=>{if(confirm("Cancellare lo storico di questo dispositivo?")){lsSet("hist",null);showHs();showSt()}};
+//HS-END
 function names(){return[($("n1").value.trim()||"Giocatore 1"),G.mode=="bot"?["Bot facile","Bot medio","Bot difficile"][lv]:($("n2").value.trim()||"Giocatore 2")]}
 function start(mode){G={mode,s:newGame(),n:null};G.n=names();busy=false;$("ov").hidden=true;
  const bd=$("bd");if(!bd.children.length)for(let q=0;q<9;q++){const e=document.createElement("div");e.className="q";for(let i=0;i<9;i++){const b=document.createElement("button");b.className="c";b.onclick=()=>tap(q*9+i);e.appendChild(b)}const g=document.createElement("div");g.className="big";e.appendChild(g);bd.appendChild(e)}
@@ -150,7 +168,7 @@ function render(){const s=G.s,ms=new Set(moves(s)),ok=G.mode=="local"||(humanTur
  const p=s.t-1;
  $("st").innerHTML=s.r?"Partita conclusa":`Tocca a <span style="color:var(--${s.t==1?"x":"o"})">${esc(G.n[p])} (${SY[s.t]})</span><small>${s.f>=0?"Gioca nel quadrante evidenziato":"Scelta libera: qualsiasi quadrante evidenziato"}</small>`}
 const esc=t=>t.replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
-function end(){const r=G.s.r;saveSt(r);beep(r==3?250:880,.4);
+function end(){const r=G.s.r;if(!G.rec){G.rec=true;saveSt(r)}beep(r==3?250:880,.4);
  $("ovT").textContent=r==3?"Pareggio!":`Vince ${G.n[r-1]}! 🎉`;
  $("ovP").textContent=r==3?"Nessuno può più completare un allineamento.":`${SY[r]} ha conquistato tre quadranti allineati.`;$("ov").hidden=false}
 document.querySelectorAll("#lv .btn").forEach(b=>b.onclick=()=>{lv=+b.dataset.l;document.querySelectorAll("#lv .btn").forEach(x=>x.classList.toggle("on",x==b))});
@@ -194,7 +212,7 @@ function onRoom(r){if(!r||!ses||r.code!=ses.code||r.version<lastV)return;lastV=r
  if($("game").hidden){$("bRe").hidden=true;show("game")}
  buildBoard();if(mv)beep(380);render();
  const seen=Date.parse(x?r.seen_o:r.seen_x);if(r.status=="playing"&&seen&&Date.now()-seen>30000)banner("L’avversario sembra disconnesso…");
- if(r.status=="playing")$("ov").hidden=true;
+ if(r.status=="playing"){$("ov").hidden=true;G.rec=false}
  else if($("ov").hidden){end();if(r.left_seat)$("ovP").textContent=(r.left_seat=="X"?r.nick_x:r.nick_o)+" ha abbandonato la partita."}}
 async function onMove(m){const prev=G.s;G.s=play(G.s,m);beep(520);render();
  try{await api({action:"move",code:ses.code,token:ses.token,m})}catch(e){G.s=prev;render();banner(e.message);setTimeout(()=>banner(""),2500);sync()}}
