@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Super Tris</title>
+<meta name="theme-color" content="#0f1226"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Super Tris">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<style>
+:root{--bg:#0f1226;--card:#1a1f3d;--tx:#eef0ff;--mu:#8c93c0;--x:#4de1ff;--o:#ffb340;--ok:#7cff9b;--ln:#2c3466;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1226}}
+@media(prefers-color-scheme:light){:root:not([data-theme="dark"]){--bg:#f2f3fb;--card:#fff;--tx:#161a3a;--mu:#5b6190;--x:#0a8fb5;--o:#d97a00;--ok:#1a9a46;--ln:#cfd3ee}}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%}
+body{background:var(--bg);color:var(--tx);font:16px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-tap-highlight-color:transparent}
+.s{max-width:520px;margin:0 auto;padding:16px;display:flex;flex-direction:column;gap:12px;animation:in .3s}
+@keyframes in{from{opacity:0;transform:translateY(8px)}}
+h1{font-size:44px;margin:12px 0 0;text-align:center;letter-spacing:-1px}
+h1 b:first-child{color:var(--x)}h1 b:last-child{color:var(--o)}
+.sub{text-align:center;color:var(--mu);margin:0 0 8px}
+button,input{font:inherit;color:var(--tx)}
+.btn{border:0;border-radius:14px;padding:14px;background:var(--card);font-weight:700;cursor:pointer;border:2px solid var(--ln)}
+.btn.p{background:linear-gradient(135deg,var(--x),var(--o));color:#101230;border:0}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+input{background:var(--card);border:2px solid var(--ln);border-radius:12px;padding:12px;width:100%}
+.seg{display:flex;gap:6px}.seg .btn{flex:1;padding:10px}.seg .on{border-color:var(--ok)}
+label{font-size:13px;color:var(--mu)}
+.bar{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.st{text-align:center;font-weight:700;min-height:48px}
+.st small{display:block;color:var(--mu);font-weight:400}
+.board{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;width:min(96vw,60vh);aspect-ratio:1;margin:0 auto}
+.q{position:relative;display:grid;grid-template-columns:repeat(3,1fr);gap:2px;padding:3px;border-radius:10px;background:var(--card);border:2px solid transparent;transition:.2s}
+.q.act{border-color:var(--ok);box-shadow:0 0 12px var(--ok)}
+.c{border:0;background:transparent;font:800 clamp(12px,4.4vw,24px)/1 system-ui;border-radius:5px;aspect-ratio:1;padding:0;cursor:default}
+.q.act .c.e{background:color-mix(in srgb,var(--ok) 18%,transparent);cursor:pointer}
+.c.X{color:var(--x)}.c.O{color:var(--o)}.c.last{outline:2px solid var(--mu)}
+.big{position:absolute;inset:0;display:none;place-items:center;font:800 min(20vw,14vh)/1 system-ui;background:color-mix(in srgb,var(--card) 82%,transparent);border-radius:8px;animation:pop .4s}
+.q.w .big{display:grid}.big.X{color:var(--x)}.big.O{color:var(--o)}.big.D{color:var(--mu)}
+@keyframes pop{from{transform:scale(.3);opacity:0}}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.6);display:grid;place-items:center;padding:20px}
+.ov>div{background:var(--card);border-radius:18px;padding:24px;max-width:360px;width:100%;display:flex;flex-direction:column;gap:10px;text-align:center;animation:pop .3s}
+.ov h2{margin:0;font-size:26px}
+[hidden]{display:none!important}
+p{margin:6px 0}
+</style></head>
+<body>
+<div id="home" class="s">
+<h1><b>Super</b> <b>Tris</b></h1><p class="sub">Ultimate Tic-Tac-Toe</p>
+<div><label>Giocatore 1 (X)</label><input id="n1" maxlength="14" value="Giocatore"></div>
+<div><label>Giocatore 2 (O) – solo modalità locale</label><input id="n2" maxlength="14" value="Amico"></div>
+<div><label>Difficoltà bot</label><div class="seg" id="lv"><button class="btn" data-l="0">Facile</button><button class="btn on" data-l="1">Medio</button><button class="btn" data-l="2">Difficile</button></div></div>
+<button class="btn p" id="bBot">🤖 Gioca contro il bot</button>
+<button class="btn p" id="bLoc">👥 Gioca in locale</button>
+<button class="btn p" id="bOn">🌐 Gioca online con gli amici</button>
+<button class="btn" id="bRul">📖 Regolamento</button>
+<p class="sub" id="stats"></p>
+</div>
+
+<div id="rules" class="s" hidden>
+<h2>Regolamento</h2>
+<p>Il tabellone è una griglia 3×3 di nove quadranti, ognuno con un tris 3×3 (81 caselle).</p>
+<p><b>La mossa decide il quadrante dell’avversario:</b> la posizione della casella in cui giochi (es. in alto a sinistra) indica il quadrante in cui l’avversario deve giocare (in alto a sinistra).</p>
+<p>Tre simboli allineati in un quadrante lo conquistano; se si riempie senza vincitore è pareggiato. I quadranti conclusi non si possono più usare.</p>
+<p>Se il quadrante di destinazione è già concluso, puoi giocare in qualsiasi altro quadrante aperto.</p>
+<p>Vince chi conquista tre quadranti allineati. Pareggio se nessuno può più completare un allineamento.</p>
+<button class="btn" data-go="home">← Indietro</button>
+</div>
+
+<div id="game" class="s" hidden>
+<div class="bar"><button class="btn" id="bBack">←</button><b id="who"></b><button class="btn" id="bSnd">🔊</button></div>
+<div class="st" id="st"></div>
+<div class="board" id="bd"></div>
+<button class="btn" id="bRe">Ricomincia</button>
+</div>
+<div id="online" class="s" hidden>
+<h2>Online</h2>
+<div><label>Il tuo nickname</label><input id="on" maxlength="14"></div>
+<div><label>Chi inizia (se crei la stanza)</label><div class="seg" id="stt"><button class="btn" data-s="X">Io</button><button class="btn" data-s="O">Amico</button><button class="btn on" data-s="r">Caso</button></div></div>
+<button class="btn p" id="bMk">Crea stanza</button>
+<div><label>Oppure entra con un codice</label><input id="cd" maxlength="5" style="text-transform:uppercase" placeholder="ABCDE"></div>
+<button class="btn" id="bJn">Entra</button>
+<p class="sub" id="oerr" style="color:var(--o)"></p>
+<button class="btn" data-go="home">← Indietro</button></div>
+<div id="lobby" class="s" hidden>
+<h2>Stanza <span id="lc" style="letter-spacing:4px"></span></h2>
+<p id="lp" class="sub"></p>
+<button class="btn p" id="bSh">📨 Invita un amico</button>
+<button class="btn p" id="bSt" hidden>▶ Avvia partita</button>
+<p class="sub" id="lm"></p>
+<button class="btn" id="bLv">Esci dalla stanza</button></div>
+<div id="off" hidden style="position:fixed;top:8px;left:8px;right:8px;background:var(--o);color:#101230;padding:8px;border-radius:10px;text-align:center;font-weight:700"></div>
+<div id="upd" hidden style="position:fixed;bottom:12px;left:12px;right:12px;background:var(--ok);color:#101230;padding:12px;border-radius:12px;text-align:center;font-weight:700;cursor:pointer">Nuova versione disponibile – tocca per aggiornare</div>
+<div class="ov" id="ov" hidden><div><h2 id="ovT"></h2><p id="ovP" class="sub"></p><button class="btn p" id="ovR">Rivincita</button><button class="btn" id="ovM">Menu</button></div></div>
+
+<script>
+//ENGINE-START
+const L=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+const win=(a,o,p)=>L.some(l=>l.every(i=>a[o+i]==p));
+const canWin=(w,p)=>L.some(l=>l.every(i=>w[i]==0||w[i]==p));
+const newGame=()=>({c:new Uint8Array(81),w:new Uint8Array(9),t:1,f:-1,r:0,last:-1});
+function moves(s){const m=[];if(s.r)return m;for(let q=0;q<9;q++){if(s.f>=0&&q!=s.f||s.w[q])continue;for(let i=0;i<9;i++)if(!s.c[q*9+i])m.push(q*9+i)}return m}
+function play(s,m){const q=(m/9)|0,i=m%9,p=s.t;
+ const n={c:s.c.slice(),w:s.w.slice(),t:3-p,f:-1,r:0,last:m};n.c[m]=p;
+ if(win(n.c,q*9,p))n.w[q]=p;else if(!n.c.slice(q*9,q*9+9).includes(0))n.w[q]=3;
+ if(n.w[q]==p&&win(n.w,0,p))n.r=p;
+ else if(!n.w.includes(0)||(!canWin(n.w,1)&&!canWin(n.w,2)))n.r=3;
+ n.f=n.w[i]?-1:i;return n}
+function sub(c,o,p){let v=0;for(const l of L){let a=0,b=0;for(const i of l){const x=c[o+i];if(x==p)a++;else if(x)b++}if(!b)v+=[0,1,4,0][a]}return v}
+function ev(s,p){const o=3-p;let v=0;
+ for(let q=0;q<9;q++){if(s.w[q]==p)v+=30;else if(s.w[q]==o)v-=30;else if(!s.w[q])v+=sub(s.c,q*9,p)-sub(s.c,q*9,o)}
+ if(s.w[4]==p)v+=10;else if(s.w[4]==o)v-=10;
+ for(const l of L){let a=0,b=0,d=0;for(const i of l){if(s.w[i]==p)a++;else if(s.w[i]==o)b++;else if(s.w[i]==3)d=1}
+  if(!d){if(!b)v+=[0,10,60,0][a];if(!a)v-=[0,10,60,0][b]}}
+ return v}
+function nm(s,d,a,b){
+ if(s.r)return s.r==3?0:-(1e5+d);
+ if(d==0)return ev(s,s.t);
+ let best=-1e9;for(const m of moves(s)){const v=-nm(play(s,m),d-1,-b,-a);if(v>best)best=v;if(best>a)a=best;if(a>=b)break}return best}
+const rnd=a=>a[Math.floor(Math.random()*a.length)];
+function bot(s,lv){const ms=moves(s);
+ if(lv==0){const w=ms.filter(m=>play(s,m).w[(m/9)|0]==s.t&&!s.w[(m/9)|0]);return Math.random()<.5&&w.length?rnd(w):rnd(ms)}
+ const d=lv==1?2:ms.length>25?3:ms.length>9?4:5;let bs=-1e9,bm=ms[0];
+ for(const m of ms){const v=-nm(play(s,m),d-1,-1e9,1e9)+(lv==1?Math.random()*40:Math.random()*.5);if(v>bs){bs=v;bm=m}}
+ return bm}
+//ENGINE-END
+
+const $=id=>document.getElementById(id);
+let G={},lv=1,busy=false,snd=true,ac;
+const SY=["","X","O"];
+function beep(f,d=.08){if(!snd)return;try{ac=ac||new AudioContext();const o=ac.createOscillator(),g=ac.createGain();o.frequency.value=f;g.gain.value=.05;o.connect(g);g.connect(ac.destination);o.start();o.stop(ac.currentTime+d)}catch(e){}}
+function show(id){["home","rules","game","online","lobby"].forEach(x=>$(x).hidden=x!=id);window.scrollTo(0,0)}
+function st(){try{return JSON.parse(localStorage.getItem("st"))||{g:0,w:0,l:0,d:0}}catch(e){return{g:0,w:0,l:0,d:0}}}
+function saveSt(r){if(G.mode!="bot")return;const s=st();s.g++;if(r==3)s.d++;else if(r==1)s.w++;else s.l++;try{localStorage.setItem("st",JSON.stringify(s))}catch(e){}showSt()}
+function showSt(){const s=st();$("stats").textContent=`Contro il bot — partite ${s.g} · vittorie ${s.w} · sconfitte ${s.l} · pareggi ${s.d}`}
+function names(){return[($("n1").value.trim()||"Giocatore 1"),G.mode=="bot"?["Bot facile","Bot medio","Bot difficile"][lv]:($("n2").value.trim()||"Giocatore 2")]}
+function start(mode){G={mode,s:newGame(),n:null};G.n=names();busy=false;$("ov").hidden=true;
+ const bd=$("bd");if(!bd.children.length)for(let q=0;q<9;q++){const e=document.createElement("div");e.className="q";for(let i=0;i<9;i++){const b=document.createElement("button");b.className="c";b.onclick=()=>tap(q*9+i);e.appendChild(b)}const g=document.createElement("div");g.className="big";e.appendChild(g);bd.appendChild(e)}
+ $("bRe").hidden=false;render();show("game");turnBot()}
+function humanTurn(){return G.mode=="online"?G.s.t==G.sn&&!G.s.r:!(G.mode=="bot"&&G.s.t==2)}
+function tap(m){if(busy||!humanTurn()||!moves(G.s).includes(m))return;if(G.mode=="online")return onMove(m);doMove(m)}
+function doMove(m){const s=G.s,q=(m/9)|0,n=play(s,m);G.s=n;beep(s.t==1?520:380);
+ if(n.w[q]&&!s.w[q])beep(n.w[q]==3?200:760,.18);render();
+ if(n.r){end();return}turnBot()}
+function turnBot(){if(G.mode=="bot"&&G.s.t==2&&!G.s.r){busy=true;setTimeout(()=>{busy=false;doMove(bot(G.s,lv))},500)}}
+function render(){const s=G.s,ms=new Set(moves(s)),ok=G.mode=="local"||(humanTurn()&&!busy);
+ [...$("bd").children].forEach((e,q)=>{const w=s.w[q];e.classList.toggle("w",!!w);
+  const big=e.lastChild;big.className="big "+(w==3?"D":SY[w]);big.textContent=w==3?"–":SY[w]||"";
+  let act=false;[...e.children].slice(0,9).forEach((b,i)=>{const v=s.c[q*9+i],pl=ms.has(q*9+i);if(pl&&ok)act=true;
+   b.textContent=SY[v]||"";b.className="c"+(v?" "+SY[v]:" e")+(q*9+i==s.last?" last":"")});
+  e.classList.toggle("act",act)});
+ $("who").textContent=`${G.n[0]} (X) vs ${G.n[1]} (O)`;
+ const p=s.t-1;
+ $("st").innerHTML=s.r?"Partita conclusa":`Tocca a <span style="color:var(--${s.t==1?"x":"o"})">${esc(G.n[p])} (${SY[s.t]})</span><small>${s.f>=0?"Gioca nel quadrante evidenziato":"Scelta libera: qualsiasi quadrante evidenziato"}</small>`}
+const esc=t=>t.replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+function end(){const r=G.s.r;saveSt(r);beep(r==3?250:880,.4);
+ $("ovT").textContent=r==3?"Pareggio!":`Vince ${G.n[r-1]}! 🎉`;
+ $("ovP").textContent=r==3?"Nessuno può più completare un allineamento.":`${SY[r]} ha conquistato tre quadranti allineati.`;$("ov").hidden=false}
+document.querySelectorAll("#lv .btn").forEach(b=>b.onclick=()=>{lv=+b.dataset.l;document.querySelectorAll("#lv .btn").forEach(x=>x.classList.toggle("on",x==b))});
+$("bBot").onclick=()=>start("bot");$("bLoc").onclick=()=>start("local");$("bRul").onclick=()=>show("rules");
+document.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>show(b.dataset.go));
+$("bBack").onclick=()=>{if(G.s.r||confirm("Abbandonare la partita?"))G.mode=="online"?leave():show("home")};
+$("bRe").onclick=()=>{if(G.s.r||confirm("Ricominciare la partita?"))start(G.mode)};
+$("ovR").onclick=()=>G.mode=="online"?rematch():start(G.mode);$("ovM").onclick=()=>{$("ov").hidden=true;G.mode=="online"?leave(true):show("home")};
+$("bSnd").onclick=()=>{snd=!snd;$("bSnd").textContent=snd?"🔊":"🔇"};
+
+// ===== ONLINE =====
+const SBU="https://xxxbfxsaqicntpopatuo.supabase.co",SBK="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh4eGJmeHNhcWljbnRwb3BhdHVvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQzODc2MzksImV4cCI6MjEwOTk2MzYzOX0.8R_FzfBjx0NQ79Tu3NXIDS6X-qn-eAiNFh1USA8R8mY";
+let ses=null,sb=null,ch=null,poll=null,lastV=-1,ST="r",upg=false;
+const lsGet=k=>{try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}};
+const lsSet=(k,v)=>{try{v==null?localStorage.removeItem(k):localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+async function api(b){const r=await fetch(SBU+"/functions/v1/game",{method:"POST",headers:{"Content-Type":"application/json",apikey:SBK},body:JSON.stringify(b)});const j=await r.json().catch(()=>({error:"Risposta non valida"}));if(!r.ok)throw new Error(j.error||"Errore");return j}
+const nick=()=>$("on").value.trim(),oerr=t=>$("oerr").textContent=t||"";
+function banner(t){$("off").textContent=t||"";$("off").hidden=!t}
+async function enter(res){ses={code:res.code,seat:res.seat,token:res.token};lsSet("ses",ses);lastV=-1;history.replaceState(null,"",location.pathname);attach();await sync()}
+$("bOn").onclick=()=>{$("on").value=$("on").value||$("n1").value;oerr();show("online")};
+document.querySelectorAll("#stt .btn").forEach(b=>b.onclick=()=>{ST=b.dataset.s;document.querySelectorAll("#stt .btn").forEach(x=>x.classList.toggle("on",x==b))});
+$("bMk").onclick=async()=>{if(!nick())return oerr("Inserisci un nickname");try{oerr();await enter(await api({action:"create",nick:nick(),starter:ST}))}catch(e){oerr(e.message)}};
+$("bJn").onclick=async()=>{const c=$("cd").value.trim().toUpperCase();if(!nick())return oerr("Inserisci un nickname");if(c.length!=5)return oerr("Il codice ha 5 caratteri");try{oerr();await enter(await api({action:"join",code:c,nick:nick()}))}catch(e){oerr(e.message)}};
+$("bSh").onclick=()=>{const u=location.origin+location.pathname+"?c="+ses.code,t="Giochiamo a Super Tris! Codice stanza: "+ses.code;navigator.share?navigator.share({title:"Super Tris",text:t,url:u}).catch(()=>{}):navigator.clipboard.writeText(t+" "+u).then(()=>alert("Link copiato negli appunti"))};
+$("bSt").onclick=()=>api({action:"start",code:ses.code,token:ses.token}).then(sync).catch(e=>$("lm").textContent=e.message);
+$("bLv").onclick=()=>leave();
+function attach(){detach();
+ try{if(window.supabase){sb=sb||supabase.createClient(SBU,SBK);ch=sb.channel("r"+ses.code).on("postgres_changes",{event:"*",schema:"public",table:"rooms",filter:"code=eq."+ses.code},p=>{banner("");onRoom(p.new)}).subscribe()}}catch(e){}
+ poll=setInterval(sync,3000)}
+function detach(){clearInterval(poll);try{ch&&sb.removeChannel(ch)}catch(e){}ch=null}
+async function sync(){if(!ses)return;try{const j=await api({action:"ping",code:ses.code,token:ses.token});banner("");onRoom(j.room)}catch(e){if(/autorizzato|non trovata/i.test(e.message))leave(true);else banner("⚠ Connessione assente – riconnessione in corso…")}}
+function onRoom(r){if(!r||!ses||r.code!=ses.code||r.version<lastV)return;lastV=r.version;
+ const x=ses.seat=="X";
+ if(r.status=="waiting"){$("lc").textContent=r.code;$("lp").textContent=`X: ${r.nick_x} · O: ${r.nick_o||"in attesa…"}`;
+  $("bSt").hidden=!(x&&r.nick_o);$("lm").textContent=!r.nick_o?"Condividi il codice o il link con l’amico.":x?"L’amico è dentro: avvia la partita!":"In attesa che "+r.nick_x+" avvii la partita…";
+  if($("lobby").hidden)show("lobby");return}
+ if(!r.state){leave(true);return}
+ const mv=G.s&&G.s.last!=r.state.last;
+ G.mode="online";G.sn=x?1:2;G.n=[r.nick_x,r.nick_o||"?"];G.s=r.state;busy=false;
+ if($("game").hidden){$("bRe").hidden=true;show("game")}
+ if(mv)beep(380);render();
+ const seen=Date.parse(x?r.seen_o:r.seen_x);if(r.status=="playing"&&seen&&Date.now()-seen>30000)banner("L’avversario sembra disconnesso…");
+ if(r.status=="playing")$("ov").hidden=true;
+ else if($("ov").hidden){end();if(r.left_seat)$("ovP").textContent=(r.left_seat=="X"?r.nick_x:r.nick_o)+" ha abbandonato la partita."}}
+async function onMove(m){const prev=G.s;G.s=play(G.s,m);beep(520);render();
+ try{await api({action:"move",code:ses.code,token:ses.token,m})}catch(e){G.s=prev;render();banner(e.message);setTimeout(()=>banner(""),2500);sync()}}
+function rematch(){api({action:"rematch",code:ses.code,token:ses.token}).then(sync).catch(e=>alert(e.message))}
+function leave(silent){const s=ses;detach();ses=null;lsSet("ses",null);lastV=-1;banner("");G={};$("ov").hidden=true;
+ if(s&&!silent)api({action:"resign",code:s.code,token:s.token}).catch(()=>{});show("home")}
+(async()=>{const c=new URLSearchParams(location.search).get("c"),s=lsGet("ses");
+ if(c){$("cd").value=c.toUpperCase().slice(0,5);$("on").value=$("n1").value;show("online");return}
+ if(s){try{const j=await api({action:"ping",code:s.code,token:s.token});if(j.room.status=="finished"){lsSet("ses",null);return}ses=s;attach();onRoom(j.room)}catch(e){if(/autorizzato|non trovata/i.test(e.message))lsSet("ses",null)}}})();
+// ===== PWA =====
+if("serviceWorker"in navigator){
+ navigator.serviceWorker.addEventListener("controllerchange",()=>{if(upg)location.reload()});
+ addEventListener("load",()=>navigator.serviceWorker.register("sw.js").then(reg=>{
+  const ask=w=>{$("upd").hidden=false;$("upd").onclick=()=>{upg=true;w.postMessage("skip")}};
+  if(reg.waiting&&navigator.serviceWorker.controller)ask(reg.waiting);
+  reg.addEventListener("updatefound",()=>{const w=reg.installing;w.addEventListener("statechange",()=>{if(w.state=="installed"&&navigator.serviceWorker.controller)ask(w)})});
+  setInterval(()=>reg.update().catch(()=>{}),3600000)}).catch(()=>{}))}
+showSt();
+</script></body></html>
