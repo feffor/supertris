@@ -21,6 +21,11 @@ button,input{font:inherit;color:var(--tx)}
 .btn.p{background:linear-gradient(135deg,var(--x),var(--o));color:#101230;border:0}
 .btn:disabled{opacity:.45;cursor:not-allowed}
 input{background:var(--card);border:2px solid var(--ln);border-radius:12px;padding:12px;width:100%}
+input::placeholder{color:#9aa0c4;opacity:.75}
+input[type=radio]{width:auto;accent-color:var(--ok)}
+input[type=range]{width:auto;flex:1;padding:0;border:0;background:transparent;accent-color:var(--ok)}
+.rd{display:flex;align-items:center;gap:8px;font-size:16px;color:var(--tx)}
+.tsl{display:flex;align-items:center;gap:10px;margin-top:8px}.tsl b{min-width:58px;text-align:right}
 .seg{display:flex;gap:6px}.seg .btn{flex:1;padding:10px}.seg .on{border-color:var(--ok)}
 label{font-size:13px;color:var(--mu)}
 .bar{display:flex;justify-content:space-between;align-items:center;gap:8px}
@@ -54,10 +59,10 @@ p{margin:6px 0}
 <body>
 <div id="home" class="s">
 <h1><b>Super</b> <b>Tris</b></h1><p class="sub">Ultimate Tic-Tac-Toe</p>
-<button class="btn" id="bPf" style="display:flex;justify-content:space-between;align-items:center"><span id="pfn">Crea il tuo profilo</span><span>✏️</span></button><input id="n1" type="hidden" value="Giocatore">
-<div><label>Giocatore 2 (O) – solo modalità locale</label><input id="n2" maxlength="14" value="Amico"></div>
+<button class="btn" id="bPf" style="display:flex;justify-content:space-between;align-items:center"><span id="pfn">Crea il tuo profilo</span><span>✏️</span></button><input id="n1" type="hidden" value="">
+<div><label>Giocatore 2 (O) – solo modalità locale</label><input id="n2" maxlength="14" placeholder="Inserisci il nome del giocatore 2"></div>
 <div><label>Difficoltà bot</label><div class="seg" id="lv"><button class="btn" data-l="0">Facile</button><button class="btn on" data-l="1">Medio</button><button class="btn" data-l="2">Difficile</button></div></div>
-<div><label>Timer per giocatore (bot e locale)</label><div class="seg" id="tmS" style="font-size:13px"><button class="btn on" data-t="0">Off</button><button class="btn" data-t="1">1 min</button><button class="btn" data-t="3">3 min</button><button class="btn" data-t="5">5 min</button><button class="btn" data-t="10">10 min</button></div></div>
+<div id="tmS"><label>Timer per giocatore (bot e locale)</label><div class="seg" style="gap:18px;margin-top:4px"><label class="rd"><input type="radio" name="tmS" value="0" checked> Off</label><label class="rd"><input type="radio" name="tmS" value="1"> On</label></div><div class="tsl" hidden><input type="range" min="1" max="30" step="1" value="5" aria-label="Minuti per giocatore"><b>5 min</b></div></div>
 <button class="btn p" id="bBot">🤖 Gioca contro il bot</button>
 <button class="btn p" id="bLoc">👥 Gioca in locale</button>
 <button class="btn p" id="bOn">🌐 Gioca online con gli amici</button>
@@ -86,7 +91,7 @@ p{margin:6px 0}
 <button class="btn" id="bRe">Ricomincia</button>
 </div>
 <div id="pf" class="s" hidden><h2 id="pft"></h2><p class="sub" id="pfs"></p>
-<div><label>Nickname (max 14 caratteri)</label><input id="pfi" maxlength="14"></div>
+<div><label>Nickname (max 14 caratteri)</label><input id="pfi" maxlength="14" placeholder="Inserisci il tuo nickname"></div>
 <div><label>Avatar</label><div class="avg" id="pfa"></div></div>
 <p class="sub" id="pfe" style="color:var(--o)"></p>
 <button class="btn p" id="pfok">Salva profilo</button>
@@ -96,11 +101,11 @@ p{margin:6px 0}
 <div id="hs" class="s" hidden><h2>Statistiche</h2><div id="hsum"></div><h2>Storico</h2><div id="hl" style="display:flex;flex-direction:column;gap:6px"></div><p class="sub">I dati restano solo su questo dispositivo.</p><button class="btn" id="bClr">Cancella storico</button><button class="btn" data-go="home">← Indietro</button></div>
 <div id="online" class="s" hidden>
 <h2>Online</h2>
-<div><label>Il tuo nickname</label><input id="on" maxlength="14"></div>
+<div><label>Il tuo nickname</label><input id="on" maxlength="14" placeholder="Inserisci il tuo nickname"></div>
 <div><label>Chi inizia (se crei la stanza)</label><div class="seg" id="stt"><button class="btn" data-s="X">Io</button><button class="btn" data-s="O">Amico</button><button class="btn on" data-s="r">Caso</button></div></div>
-<div><label>Timer per giocatore</label><div class="seg" id="otm" style="font-size:13px"><button class="btn on" data-t="0">Off</button><button class="btn" data-t="1">1 min</button><button class="btn" data-t="3">3 min</button><button class="btn" data-t="5">5 min</button><button class="btn" data-t="10">10 min</button></div></div>
+<div id="otm"><label>Timer per giocatore</label><div class="seg" style="gap:18px;margin-top:4px"><label class="rd"><input type="radio" name="otm" value="0" checked> Off</label><label class="rd"><input type="radio" name="otm" value="1"> On</label></div><div class="tsl" hidden><input type="range" min="1" max="30" step="1" value="5" aria-label="Minuti per giocatore"><b>5 min</b></div></div>
 <button class="btn p" id="bMk">Crea stanza</button>
-<div><label>Oppure entra con un codice</label><input id="cd" maxlength="5" style="text-transform:uppercase" placeholder="ABCDE"></div>
+<div><label>Oppure entra con un codice</label><input id="cd" maxlength="5" placeholder="Inserisci il codice della stanza"></div>
 <button class="btn" id="bJn">Entra</button>
 <p class="sub" id="oerr" style="color:var(--o)"></p>
 <button class="btn" data-go="home">← Indietro</button></div>
@@ -279,8 +284,11 @@ const AV=["🦊","🐼","🐸","🦁","🐙","🚀","🐯","🐵","🦄","🐧",
 $("pfa").innerHTML=AV.map(e=>`<button class="btn" data-e="${e}">${e}</button>`).join("");
 const myAv=()=>{const p=lsGet("prof");return p?p.e:"🙂"};
 const p2Av=()=>rnd(AV.filter(e=>e!=myAv()));
-function seg(id,fn){const bs=document.querySelectorAll("#"+id+" .btn");bs.forEach(b=>b.onclick=()=>{bs.forEach(x=>x.classList.toggle("on",x==b));fn(+b.dataset.t)})}
-seg("tmS",v=>TM=v*60000);seg("otm",v=>OTM=v*60);
+function tmCtl(id,fn){const c=$(id),sl=c.querySelector("input[type=range]"),out=c.querySelector("b"),box=c.querySelector(".tsl");
+ const upd=()=>{const on=c.querySelector("input[type=radio]:checked").value=="1";box.hidden=!on;out.textContent=Math.round(sl.value)+" min";fn(on?Math.round(sl.value):0)};
+ c.querySelectorAll("input[type=radio]").forEach(x=>x.onchange=upd);sl.oninput=upd;upd()}
+tmCtl("tmS",v=>TM=v*60000);tmCtl("otm",v=>OTM=v*60);
+$("cd").oninput=()=>{$("cd").value=$("cd").value.toUpperCase()};
 const fmt=ms=>{ms=Math.max(0,Math.ceil(ms/1000));return Math.floor(ms/60)+":"+String(ms%60).padStart(2,"0")};
 function rem(k){const c=G.clk;if(!c)return null;const v=k==1?c.tx:c.to;return !G.s.r&&G.s.t==k&&(G.mode!="online"||G.live)?v-(Date.now()-c.at):v}
 function clk(){if(!G.s)return;[1,2].forEach(k=>{const e=$("pc"+k).querySelector(".tm"),v=rem(k);e.textContent=v==null?"":fmt(v);e.classList.toggle("low",v!=null&&v<10000&&v>0)})}
@@ -316,7 +324,7 @@ $("pfok").onclick=()=>{const n=cleanNick($("pfi").value);if(!n){$("pfe").textCon
  try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}applyProf();show("home")};
 $("pfback").onclick=()=>{if(!prof())lsSet("noprof",1);show("home")};
 $("pfdel").onclick=()=>{if(!confirm("Eliminare profilo, statistiche e storico da questo dispositivo?"))return;
- ["prof","hist","ses","tutDone","noprof"].forEach(k=>lsSet(k,null));$("n1").value="Giocatore";showSt();applyProf();openPf()};
+ ["prof","hist","ses","tutDone","noprof"].forEach(k=>lsSet(k,null));$("n1").value="";showSt();applyProf();openPf()};
 $("bPf").onclick=()=>openPf();
 //PF-END
 applyProf();
