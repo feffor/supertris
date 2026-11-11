@@ -161,6 +161,7 @@ $("bRe").onclick=()=>{if(G.s.r||confirm("Ricominciare la partita?"))start(G.mode
 $("ovR").onclick=()=>G.mode=="online"?rematch():start(G.mode);$("ovM").onclick=()=>{$("ov").hidden=true;G.mode=="online"?leave(true):show("home")};
 $("bSnd").onclick=()=>{snd=!snd;$("bSnd").textContent=snd?"🔊":"🔇"};
 
+function buildBoard(){const bd=$("bd");if(bd.children.length)return;for(let q=0;q<9;q++){const e=document.createElement("div");e.className="q";for(let i=0;i<9;i++){const b=document.createElement("button");b.className="c";b.onclick=()=>tap(q*9+i);e.appendChild(b)}const g=document.createElement("div");g.className="big";e.appendChild(g);bd.appendChild(e)}}
 // ===== ONLINE =====
 const SBU="https://xxxbfxsaqicntpopatuo.supabase.co",SBK="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh4eGJmeHNhcWljbnRwb3BhdHVvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQzODc2MzksImV4cCI6MjEwOTk2MzYzOX0.8R_FzfBjx0NQ79Tu3NXIDS6X-qn-eAiNFh1USA8R8mY";
 let ses=null,sb=null,ch=null,poll=null,lastV=-1,ST="r",upg=false;
@@ -191,7 +192,7 @@ function onRoom(r){if(!r||!ses||r.code!=ses.code||r.version<lastV)return;lastV=r
  const mv=G.s&&G.s.last!=r.state.last;
  G.mode="online";G.sn=x?1:2;G.n=[r.nick_x,r.nick_o||"?"];G.s=r.state;busy=false;
  if($("game").hidden){$("bRe").hidden=true;show("game")}
- if(mv)beep(380);render();
+ buildBoard();if(mv)beep(380);render();
  const seen=Date.parse(x?r.seen_o:r.seen_x);if(r.status=="playing"&&seen&&Date.now()-seen>30000)banner("L’avversario sembra disconnesso…");
  if(r.status=="playing")$("ov").hidden=true;
  else if($("ov").hidden){end();if(r.left_seat)$("ovP").textContent=(r.left_seat=="X"?r.nick_x:r.nick_o)+" ha abbandonato la partita."}}
