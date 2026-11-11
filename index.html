@@ -108,7 +108,7 @@ p{margin:6px 0}
 <p class="sub" id="pfst"></p>
 <button class="btn" id="pfdel" hidden>Elimina profilo e dati</button>
 <button class="btn" id="pfback">← Indietro</button></div>
-<div id="hs" class="s" hidden><h2>Statistiche</h2><div id="hsum"></div><h2>Storico</h2><div id="hl" style="display:flex;flex-direction:column;gap:6px"></div><p class="sub">I dati restano solo su questo dispositivo.</p><button class="btn" id="bClr">Cancella storico</button><button class="btn" data-go="home">← Indietro</button></div>
+<div id="hs" class="s" hidden><h2>Statistiche</h2><div class="seg" id="hf"><button class="btn on" data-m="bot">🤖 Bot</button><button class="btn on" data-m="online">🌐 Online</button><button class="btn on" data-m="local">👥 Locale</button></div><p class="sub" id="hfn" style="min-height:1.2em;margin:0"></p><div id="hsum"></div><h2>Storico</h2><div id="hl" style="display:flex;flex-direction:column;gap:6px"></div><p class="sub">I dati restano solo su questo dispositivo.</p><button class="btn" id="bClr">Cancella storico</button><button class="btn" data-go="home">← Indietro</button></div>
 <div id="online" class="s" hidden>
 <h2>Online</h2>
 <div><label>Il tuo nickname</label><input id="on" maxlength="14" placeholder="Inserisci il tuo nickname"></div>
@@ -169,19 +169,25 @@ function beep(f,d=.08){if(!snd)return;try{ac=ac||new AudioContext();const o=ac.c
 function show(id){["home","rules","game","online","lobby","hs","pf"].forEach(x=>$(x).hidden=x!=id);$("tut").hidden=!(id=="game"&&G.mode=="tut");window.scrollTo(0,0);setTimeout(fit,0)}
 //HS-START
 const hist=()=>lsGet("hist")||[];
+const HF=new Set(["bot","online","local"]);
+const meOf=e=>e.m=="local"?1:e.me;
+const noLocal=()=>hist().filter(e=>e.m!="local");
 function saveSt(r){const n=G.s.c.filter(x=>x).length,me=G.mode=="online"?G.sn:G.mode=="bot"?1:0;
  const h=hist();h.unshift({d:Date.now(),m:G.mode,a:G.n[0],b:G.n[1],r,me,n});lsSet("hist",h.slice(0,200));showSt()}
-function tally(h){const m=h.filter(e=>e.me),w=m.filter(e=>e.r==e.me).length,d=m.filter(e=>e.r==3).length;let cur=0,best=0,run=0;
- for(const e of m.slice().reverse()){if(e.r==e.me){run++;best=Math.max(best,run)}else run=0}
- for(const e of m){if(e.r==e.me)cur++;else break}
- return{t:m.length,w,d,l:m.length-w-d,cur,best}}
-function showSt(){const s=tally(hist());$("stats").textContent=s.t?`Le tue partite (bot e online): vittorie ${s.w} · sconfitte ${s.l} · pareggi ${s.d}`:""}
-function showHs(){const h=hist(),s=tally(h),by=m=>h.filter(e=>e.m==m).length;
- $("hsum").innerHTML=`<div class="g4"><div><b>${s.t}</b>partite</div><div><b>${s.w}</b>vinte</div><div><b>${s.l}</b>perse</div><div><b>${s.d}</b>pari</div></div><p class="sub">Vittorie ${s.t?Math.round(s.w*100/s.t):0}% · serie attuale ${s.cur} · migliore ${s.best}<br>Bot ${by("bot")} · Online ${by("online")} · Locale ${by("local")}</p>`;
+function tally(h){const w=h.filter(e=>e.r==meOf(e)).length,d=h.filter(e=>e.r==3).length;let cur=0,best=0,run=0;
+ for(const e of h.slice().reverse()){if(e.r==meOf(e)){run++;best=Math.max(best,run)}else run=0}
+ for(const e of h){if(e.r==meOf(e))cur++;else break}
+ return{t:h.length,w,d,l:h.length-w-d,cur,best}}
+function showSt(){const s=tally(noLocal());$("stats").textContent=s.t?`Le tue partite (bot e online): vittorie ${s.w} · sconfitte ${s.l} · pareggi ${s.d}`:""}
+function showHs(){const h=hist().filter(e=>HF.has(e.m)),s=tally(h),by=m=>h.filter(e=>e.m==m).length,N={bot:"Bot",online:"Online",local:"Locale"};
+ document.querySelectorAll("#hf .btn").forEach(b=>b.classList.toggle("on",HF.has(b.dataset.m)));
+ $("hsum").innerHTML=`<div class="g4"><div><b>${s.t}</b>partite</div><div><b>${s.w}</b>vinte</div><div><b>${s.l}</b>perse</div><div><b>${s.d}</b>pari</div></div><p class="sub">Vittorie ${s.t?Math.round(s.w*100/s.t):0}% · serie attuale ${s.cur} · migliore ${s.best}<br>${["bot","online","local"].filter(m=>HF.has(m)).map(m=>N[m]+" "+by(m)).join(" · ")}${HF.has("local")?"<br><small>Locale: vittoria se vince il Giocatore 1, sconfitta se vince il Giocatore 2.</small>":""}</p>`;
  $("hl").innerHTML=h.length?h.slice(0,50).map(e=>{const when=new Date(e.d).toLocaleString("it-IT",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});
   const ic={bot:"🤖",online:"🌐",local:"👥"}[e.m]||"";
-  const out=e.r==3?["Pareggio",""]:e.me?(e.r==e.me?["Vittoria","rw"]:["Sconfitta","rl"]):["Vince "+(e.r==1?e.a:e.b),""];
-  return `<div class="row"><span>${ic} ${esc(e.a)} vs ${esc(e.b)}<br><small>${when} · ${e.n} mosse</small></span><b class="${out[1]}">${esc(out[0])}</b></div>`}).join(""):'<p class="sub">Nessuna partita ancora.</p>'}
+  const out=e.r==3?["Pareggio",""]:e.m=="local"?["Vince "+(e.r==1?e.a:e.b),e.r==1?"rw":"rl"]:(e.r==e.me?["Vittoria","rw"]:["Sconfitta","rl"]);
+  return `<div class="row"><span>${ic} ${esc(e.a)} vs ${esc(e.b)}<br><small>${when} · ${e.n} mosse</small></span><b class="${out[1]}">${esc(out[0])}</b></div>`}).join(""):'<p class="sub">Nessuna partita con questi filtri.</p>'}
+document.querySelectorAll("#hf .btn").forEach(b=>b.onclick=()=>{const m=b.dataset.m;
+ if(HF.has(m)){if(HF.size==1){$("hfn").textContent="Seleziona almeno un tipo di partita.";setTimeout(()=>$("hfn").textContent="",1800);return}HF.delete(m)}else HF.add(m);showHs()});
 $("bHs").onclick=()=>{showHs();show("hs")};
 $("bClr").onclick=()=>{if(confirm("Cancellare lo storico di questo dispositivo?")){lsSet("hist",null);showHs();showSt()}};
 //HS-END
@@ -326,7 +332,7 @@ const cleanNick=v=>String(v||"").replace(/[<>&]/g,"").trim().slice(0,14);
 function applyProf(){const p=prof();$("pfn").textContent=p?`${p.e} ${p.nick}`:"Crea il tuo profilo";if(p)$("n1").value=p.nick}
 let pe="🦊";
 function pfMark(){document.querySelectorAll("#pfa .btn").forEach(b=>b.classList.toggle("on",b.dataset.e==pe))}
-function openPf(){const p=prof(),t=tally(hist());$("pfi").value=p?p.nick:"";pe=p?p.e:"🦊";pfMark();$("pfe").textContent="";
+function openPf(){const p=prof(),t=tally(noLocal());$("pfi").value=p?p.nick:"";pe=p?p.e:"🦊";pfMark();$("pfe").textContent="";
  $("pft").textContent=p?"Il tuo profilo":"Crea il tuo profilo";
  $("pfs").textContent=p?`Creato il ${new Date(p.c).toLocaleDateString("it-IT")}. Salvato solo su questo dispositivo.`:"Scegli nickname e avatar: resteranno salvati su questo dispositivo, senza registrazione.";
  $("pfst").textContent=p&&t.t?`Partite contro bot e online: ${t.t} · vittorie ${t.w} · sconfitte ${t.l} · pareggi ${t.d}`:"";
